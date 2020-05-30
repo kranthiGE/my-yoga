@@ -58,7 +58,7 @@ export class YogaClasses extends React.PureComponent<YogaClassesProps, YogaClass
     this.props.history.push(`/yogaclass/${classId}/edit`)
   }
 
-  onYogaClassCreate = async (event: React.ChangeEvent<HTMLButtonElement>) => {
+  onYogaClassCreate = async () => {
     try {
       
       if(!this.state.newClassName || this.state.newClassName.length == 0){
@@ -152,7 +152,7 @@ export class YogaClasses extends React.PureComponent<YogaClassesProps, YogaClass
   renderCreateClassInput() {
     return (
       <Grid.Row>
-        <Grid.Column width={8}>
+        <Grid.Column width={4}>
           Class Name:
           <Input
             
@@ -170,21 +170,22 @@ export class YogaClasses extends React.PureComponent<YogaClassesProps, YogaClass
               onChange={this.handleDescriptionChange} size="large"
             />
         </Grid.Column>
-        <Grid.Column>
+        <Grid.Column width={4}>
           Schedule Date: 
           <DatePicker selected={this.state.scheduleDate} onChange={this.handleScheduleDateChange} minDate={subDays(new Date(), -2)} />
         </Grid.Column>
         <Grid.Column>
-
-          <Button color="teal" action={{
-            color: 'teal',
-            labelPosition: 'left',
-            icon: 'add',
-          }}
-          onClick={() => this.onYogaClassCreate}
-          >
-            Add Class
-          </Button>
+        
+            <Input type="button"
+              action={{
+                color: 'teal',
+                icon: 'add',
+                content: 'Add Class',
+                actionPosition: 'left',
+                onClick: this.onYogaClassCreate
+              }}
+            />
+        
         </Grid.Column>
         <Grid.Column width={16}>
           <Divider />

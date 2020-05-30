@@ -36,6 +36,7 @@ Register for your favourite Yoga class
 - verifies input oauth2 authorization token using Asymmetric JWT token validation approach using Auth0, 3rd party service 
 - Uses Serverless.yaml framework to create/update entire stack including function-wise IAM roles 
 - Uses KMS keys and SecretsManager to store Auth0 and other app related secrets
+- AWS Xray has been configured for distributed tracing 
 ***
 ## Getting Setup
 ***
