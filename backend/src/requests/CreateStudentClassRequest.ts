@@ -2,8 +2,7 @@
  * Fields in a request to insert student record to a yoga class.
  */
 export interface CreateStudentClassRequest {
-    studentUserId: string   // student's UserId
-    classId: string      // classId
+    classId: string
     name: string
     classDescription?: string | null
     scheduleDate: string

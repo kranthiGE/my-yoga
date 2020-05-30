@@ -21,6 +21,7 @@ export class LogIn extends React.PureComponent<LogInProps, LogInState> {
         <Button onClick={this.onLogin} size="huge" color="olive">
           Log in as Teacher
         </Button>
+        <h3> Student features are coming soon... </h3>
       </div>
     )
   }

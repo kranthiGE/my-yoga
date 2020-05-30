@@ -9,9 +9,6 @@
       "classId": {
         "type": "string"
       },
-      "studentClassId": {
-        "type": "string"
-      },
       "name": {
         "type": "string"
       },
@@ -33,7 +30,7 @@
     },
     "required": [
       "createdBy",
-      "studentClassId"
+      "classId"
     ],
     "additionalProperties": false
   }
