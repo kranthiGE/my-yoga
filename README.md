@@ -38,6 +38,7 @@ Register for your favourite Yoga class
 - Uses KMS keys and SecretsManager to store Auth0 and other app related secrets
 ***
 ## Getting Setup
+***
 ### Installing project dependencies
 ```bash
 npm install -g serverless
@@ -60,6 +61,7 @@ sls plugin install --name serverless-dynamodb-local
 sls plugin install --name serverless-offline
 npm install --save-dev serverless-plugin-tracing
 ```
+***
 ### References
 https://www.alexdebrie.com/posts/dynamodb-single-table/ 
 https://www.alexdebrie.com/posts/dynamodb-filter-expressions/ 
