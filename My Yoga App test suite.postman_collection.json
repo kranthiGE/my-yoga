@@ -1,7 +1,7 @@
 {
 	"info": {
 		"_postman_id": "ebadd46e-e89b-4901-a7e9-f148e5d468f1",
-		"name": "SahiKran My Yoga App test suite",
+		"name": "My Yoga App test suite",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"item": [
@@ -290,10 +290,10 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n\t\"name\": \"Patanjali Yoga Class\",\n\t\"classDescription\": \"Learn and perform asthanga yoga principles and asanas\",\n\t\"scheduleDate\": \"2020-06-11\",\n\t\"done\": false\n}"
+							"raw": ""
 						},
 						"url": {
-							"raw": "https://{{apiId}}.execute-api.{{region}}.amazonaws.com/dev/yogaclass/35dd600f-43c2-4649-903c-615e1586a26f",
+							"raw": "https://{{apiId}}.execute-api.{{region}}.amazonaws.com/dev/yogaclass/outdated",
 							"protocol": "https",
 							"host": [
 								"{{apiId}}",
@@ -305,7 +305,7 @@
 							"path": [
 								"dev",
 								"yogaclass",
-								"35dd600f-43c2-4649-903c-615e1586a26f"
+								"outdated"
 							]
 						}
 					},
@@ -435,19 +435,19 @@
 	],
 	"variable": [
 		{
-			"id": "89e9f559-821d-43a3-8c93-1859fcfd875b",
+			"id": "2b746a3a-d9b7-48dc-9dfd-8b461161c231",
 			"key": "apiId",
 			"value": "",
 			"type": "string"
 		},
 		{
-			"id": "c791f9e8-9504-419e-9585-88de647168a1",
+			"id": "57bfb22a-0bc9-44f6-8583-2055e1c8dde0",
 			"key": "region",
 			"value": "",
 			"type": "string"
 		},
 		{
-			"id": "10dbbf4e-87a8-46f2-913a-8f27a7c52730",
+			"id": "7f719cd9-7c2e-4749-abde-d2257f782c55",
 			"key": "authToken",
 			"value": "",
 			"type": "string"
