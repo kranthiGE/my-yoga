@@ -1,0 +1,31 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "title": "yoga-class",
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string"
+      },
+      "classDescription": {
+        "type": "string"
+      },
+      "scheduleDate": {
+        "type": "string"
+      },
+      "done": {
+        "type": "number"
+      },
+      "attachmentUrl": {
+        "type": "string"
+      },
+      "createdBy": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "name",
+      "scheduleDate"
+    ],
+    "additionalProperties": false
+  }
+  

@@ -1,0 +1,40 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "title": "book-ayoga-class",
+    "type": "object",
+    "properties": {
+      "createdBy": {
+        "type": "string"
+      },
+      "classId": {
+        "type": "string"
+      },
+      "studentClassId": {
+        "type": "string"
+      },
+      "name": {
+        "type": "string"
+      },
+      "classDescription": {
+        "type": "string"
+      },
+      "scheduleDate": {
+        "type": "string"
+      },
+      "done": {
+        "type": "number"
+      },
+      "attended": {
+        "type": "number"
+      },
+      "attachmentUrl": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "createdBy",
+      "studentClassId"
+    ],
+    "additionalProperties": false
+  }
+  

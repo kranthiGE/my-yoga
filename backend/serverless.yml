@@ -1,0 +1,468 @@
+service:
+  name: my-yoga-app
+# app and org for use with dashboard.serverless.com
+#app: your-app-name
+#org: your-org-name
+
+# Add the serverless-webpack plugin
+plugins:
+  - serverless-webpack
+  - serverless-reqvalidator-plugin
+  - serverless-aws-documentation
+  - serverless-dynamodb-local
+  - serverless-offline
+  - serverless-iam-roles-per-function
+  - serverless-plugin-tracing
+
+provider:
+
+  tracing:
+    lambda: true
+    apiGateway: true
+
+  name: aws
+  runtime: nodejs12.x
+
+  stage: ${opt:stage, 'dev'}
+  region: ${opt:region, 'ap-south-1'}
+
+  apiGateway:
+    minimumCompressionSize: 1024 # Enable gzip compression for responses > 1 KB
+
+  environment:
+    APP_USER_ROLE_TABLE: YogaAppUserRole2-${self:provider.stage}
+    CLASSES_TABLE: YogaClass4-${self:provider.stage}
+    USER_DATE_INDEX: userIndex-${self:provider.stage}
+    SCHEDULE_DATE_INDEX: scheduleIndex-${self:provider.stage}
+    STUDENT_CLASS_INDEX: studentClassIndex-${self:provider.stage}
+    DONE_CLASS_INDEX: doneClassIndex-${self:provider.stage}
+    AWS_NODEJS_CONNECTION_REUSE_ENABLED: 1
+    YOGA_IMAGES_S3_BUCKET: sahikran-yoga-images-${self:provider.stage}
+    YOGA_APP_REGION: ${self:provider.region}
+    SIGNED_URL_EXPIRATION: 300
+    RS_AUTH_0_CERT_ID: Yoga-RS-Auth0Cert-${self:provider.stage}
+    RS_AUTH_0_CERT_VALUE: yoga-rs-auth0Cert
+
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+      Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.CLASSES_TABLE}/index/${self:provider.environment.USER_DATE_INDEX}
+    - Effect: Allow
+      Action:
+        - secretsmanager:GetSecretValue
+      Resource: !Ref RsAuth0Secret
+    - Effect: Allow
+      Action:
+        - kms:Decrypt
+      Resource: !GetAtt KMSKey.Arn
+    - Effect: Allow
+      Action:
+        - xray:PutTraceSegments
+        - xray:PutTelemetryRecords
+      Resource:
+        - '*'
+
+custom:
+  webpack:
+    webpackConfig: ./webpack.config.js
+    includeModules: true
+  documentation:
+    api:
+      info:
+        version: v1.1.6
+        title: my-yoga-app API
+        description: serverless app for Yoga Classes
+    models:
+      - name: YogaClassRequest
+        contentType: application/json
+        schema: ${file(models/create-yoga-class-request.json)}
+      - name: StudentClassRequest
+        contentType: application/json
+        schema: ${file(models/book-a-yoga-class-request.json)}
+
+  serverless-offline:
+    port: 3003
+
+  dynamodb:
+    stages:
+      - ${self:provider.stage}
+    start:
+      port: 8000
+      inMemory: true
+      migrate: true
+
+functions:
+
+  RS256Auth:
+    handler: src/lambda/auth/rs256Auth0Authorizer.handler
+
+  RS256AuthNoRole:
+    handler: src/lambda/auth/rs256Auth0AuthorizerNoRole.handler
+
+  GetYogaClasses:
+    handler: src/lambda/http/getYogaClasses.handler
+    events:
+      - http:
+          method: get
+          path: yogaclass
+          cors: true
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:Scan
+          - dynamodb:GetItem
+          - dynamodb:Query
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.CLASSES_TABLE}
+      - Effect: Allow
+        Action:
+          - dynamodb:Query
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.CLASSES_TABLE}/index/${self:provider.environment.USER_DATE_INDEX}
+
+  GetYogaClassesForStudents:
+    handler: src/lambda/http/getYogaClassesForStudents.handler
+    events:
+      - http:
+          method: get
+          path: studentyogaclass
+          cors: true
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:Scan
+          - dynamodb:GetItem
+          - dynamodb:Query
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.CLASSES_TABLE}
+      - Effect: Allow
+        Action:
+          - dynamodb:Query
+        Resource: 
+          - arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.CLASSES_TABLE}/index/${self:provider.environment.DONE_CLASS_INDEX}
+          - arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.CLASSES_TABLE}/index/${self:provider.environment.STUDENT_CLASS_INDEX}
+
+  CreateYogaClasses:
+    handler: src/lambda/http/createYogaClass.handler
+    events:
+      - http:
+          method: post
+          path: yogaclass
+          cors: true
+          authorizer: RS256Auth
+          reqValidatorName: RequestBodyValidator
+          documentation:
+            summary: Create a new Yoga Class
+            description: Create a new Yoga Class
+            requestModels:
+              'application/json': YogaClassRequest
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:PutItem
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.CLASSES_TABLE}
+
+  BookAYogaClass:
+    handler: src/lambda/http/bookAYogaClass.handler
+    events:
+      - http:
+          method: post
+          path: studentyogaclass
+          cors: true
+          authorizer: RS256Auth
+          reqValidatorName: RequestBodyValidator
+          documentation:
+            summary: Book a Yoga Class
+            description: Book a Yoga Class
+            requestModels:
+              'application/json': StudentClassRequest
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:PutItem
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.CLASSES_TABLE}
+
+  UpdateYogaClasses:
+    handler: src/lambda/http/updateYogaClass.handler
+    events:
+      - http:
+          method: put
+          path: yogaclass/{classId}
+          cors: true
+          authorizer: RS256Auth
+          reqValidatorName: RequestBodyValidator
+          documentation:
+            summary: Update Yoga class details
+            description: Update Yoga class details
+            requestModels:
+              'application/json': YogaClassRequest
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:GetItem
+          - dynamodb:Query
+          - dynamodb:UpdateItem
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.CLASSES_TABLE}
+
+  UpdateOutdatedClasses:
+    handler: src/lambda/http/updateOutdatedClasses.handler
+    events:
+      - http:
+          method: put
+          path: yogaclass/outdated
+          cors: true
+          authorizer: RS256AuthNoRole
+          reqValidatorName: RequestBodyValidator
+          documentation:
+            summary: Update past dated Yoga classes
+            description: Update past dated Yoga classes
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:GetItem
+          - dynamodb:Query
+          - dynamodb:UpdateItem
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.CLASSES_TABLE}/index/${self:provider.environment.SCHEDULE_DATE_INDEX}
+
+  UpdateYogaImageUrl:
+    handler: src/lambda/http/updateYogaClassImageUrl.handler
+    events:
+      - http:
+          method: post
+          path: yogaclass/image/{classId}
+          cors: true
+          authorizer: RS256Auth
+          reqValidatorName: RequestBodyValidator
+          documentation:
+            summary: Update a yoga class attachment URL
+            description: Update a yoga class attachment URL
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:GetItem
+          - dynamodb:Query
+          - dynamodb:UpdateItem
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.CLASSES_TABLE}
+      - Effect: Allow
+        Action:
+          - xray:PutTraceSegments
+          - xray:PutTelemetryRecords
+        Resource:
+          - '*'
+
+  DeleteYogaClass:
+    handler: src/lambda/http/deleteYogaClass.handler
+    events:
+      - http:
+          method: delete
+          path: yogaclass/{classId}
+          cors: true
+          authorizer: RS256Auth
+          documentation:
+            summary: Delete a yoga class item
+            description: Delete a yoga class item
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:GetItem
+          - dynamodb:Query
+          - dynamodb:DeleteItem
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.CLASSES_TABLE}
+
+  GenerateUploadUrl:
+    handler: src/lambda/http/generateUploadUrl.handler
+    events:
+      - http:
+          method: post
+          path: yogaclass/{classId}/attachment
+          cors: true
+          authorizer: RS256Auth
+          documentation:
+            summary: generate upload url
+            description: generate S3 upload url for a yoga class
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:GetItem
+          - dynamodb:Query
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.CLASSES_TABLE}
+      - Effect: Allow
+        Action:
+          - s3:PutObject
+          - s3:GetObject
+        Resource: arn:aws:s3:::${self:provider.environment.YOGA_IMAGES_S3_BUCKET}/*
+
+  CreateYogaUser:
+    handler: src/lambda/http/createYogaUser.handler
+    events:
+      - http:
+          method: post
+          path: yogauser
+          cors: true
+          authorizer: RS256AuthNoRole
+          reqValidatorName: RequestBodyValidator
+          documentation:
+            summary: Associate user to a role
+            description: Associate user to a role
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:PutItem
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.APP_USER_ROLE_TABLE}
+
+resources:
+  Resources:
+    GatewayResponseDefault4XX:
+      Type: AWS::ApiGateway::GatewayResponse
+      Properties:
+        ResponseParameters:
+          gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
+          gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+          gatewayresponse.header.Access-Control-Allow-Methods: "'GET,OPTIONS,POST'"
+        ResponseType: DEFAULT_4XX
+        RestApiId:
+          Ref: ApiGatewayRestApi
+
+    YogaClassesDynamoDBTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: createdBy
+            AttributeType: S
+          - AttributeName: classId
+            AttributeType: S
+          - AttributeName: scheduleDate
+            AttributeType: S
+          - AttributeName: attended
+            AttributeType: N
+          - AttributeName: done
+            AttributeType: N
+        KeySchema:
+          - AttributeName: createdBy
+            KeyType: HASH
+          - AttributeName: classId
+            KeyType: RANGE
+        BillingMode: PAY_PER_REQUEST
+        TableName: ${self:provider.environment.CLASSES_TABLE}
+        LocalSecondaryIndexes:
+          - IndexName: ${self:provider.environment.USER_DATE_INDEX}
+            KeySchema:
+              - AttributeName: createdBy
+                KeyType: HASH
+              - AttributeName: scheduleDate
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL # What attributes will be copied to an index    
+          - IndexName: ${self:provider.environment.STUDENT_CLASS_INDEX}
+            KeySchema:
+              - AttributeName: createdBy
+                KeyType: HASH
+              - AttributeName: attended
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL # What attributes will be copied to an index    
+        GlobalSecondaryIndexes:
+          - IndexName: ${self:provider.environment.SCHEDULE_DATE_INDEX}
+            KeySchema:
+              - AttributeName: scheduleDate
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL # What attributes will be copied to an index   
+          - IndexName: ${self:provider.environment.DONE_CLASS_INDEX}
+            KeySchema:
+              - AttributeName: done
+                KeyType: HASH
+              - AttributeName: createdBy
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL # What attributes will be copied to an index   
+
+    AppUserRoleDynamoDBTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: userId
+            AttributeType: S
+          - AttributeName: roleNumber
+            AttributeType: N
+        KeySchema:
+          - AttributeName: userId
+            KeyType: HASH
+          - AttributeName: roleNumber
+            KeyType: RANGE
+        BillingMode: PAY_PER_REQUEST
+        TableName: ${self:provider.environment.APP_USER_ROLE_TABLE}
+    
+    RequestBodyValidator:
+      Type: AWS::ApiGateway::RequestValidator
+      Properties:
+        Name: 'request-body-validator'
+        RestApiId:
+          Ref: ApiGatewayRestApi
+        ValidateRequestBody: true
+        ValidateRequestParameters: false
+
+    AttachmentsBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${self:provider.environment.YOGA_IMAGES_S3_BUCKET}
+        CorsConfiguration:
+          CorsRules:
+            -
+              AllowedOrigins:
+                - '*'
+              AllowedHeaders:
+                - '*'
+              AllowedMethods:
+                - GET
+                - PUT
+                - POST
+                - DELETE
+                - HEAD
+              MaxAge: 3000
+
+    BucketPolicy:
+      Type: AWS::S3::BucketPolicy
+      Properties:
+        PolicyDocument:
+          Id: MyPolicy
+          Version: "2012-10-17"
+          Statement:
+            - Sid: PublicReadForGetBucketObjects
+              Effect: Allow
+              Principal: '*'
+              Action: 's3:GetObject'
+              Resource: 'arn:aws:s3:::${self:provider.environment.YOGA_IMAGES_S3_BUCKET}/*'
+        Bucket: !Ref AttachmentsBucket
+
+    KMSKey:
+      Type: AWS::KMS::Key
+      Properties:
+        Description: KMS key to encrypt Auth0 secret
+        KeyPolicy:
+          Version: '2012-10-17'
+          Id: key-default-1
+          Statement:
+            - Sid: Allow administration of the key
+              Effect: Allow
+              Principal:
+                AWS:
+                  Fn::Join:
+                  - ':'
+                  - - 'arn:aws:iam:'
+                    - Ref: AWS::AccountId
+                    - 'root'
+              Action:
+                - 'kms:*'
+              Resource: '*'
+
+    KMSKeyAlias:
+      Type: AWS::KMS::Alias
+      Properties:
+        AliasName: alias/sahikran-yoga-app-${self:provider.stage}
+        TargetKeyId: !Ref KMSKey
+    
+    RsAuth0Secret:
+      Type: AWS::SecretsManager::Secret
+      Properties:
+        Name: ${self:provider.environment.RS_AUTH_0_CERT_ID}
+        Description: RS256 algorithm Auth0 cert
+        KmsKeyId: !Ref KMSKey
